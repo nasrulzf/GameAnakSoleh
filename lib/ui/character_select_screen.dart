@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../app/game_progress.dart';
-import '../game/character_painter.dart';
 import 'level_select_screen.dart';
 
 class CharacterSelectScreen extends StatelessWidget {
@@ -69,7 +68,10 @@ class _CharacterCard extends StatelessWidget {
                 SizedBox(
                   height: 140,
                   width: double.infinity,
-                  child: CustomPaint(painter: _CharacterPreviewPainter(gender: gender)),
+                  child: Image.asset(
+                    'assets/images/characters/${gender.name}_right_idle.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(gender.label, style: Theme.of(context).textTheme.titleMedium),
@@ -86,23 +88,4 @@ class _CharacterCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CharacterPreviewPainter extends CustomPainter {
-  const _CharacterPreviewPainter({required this.gender});
-
-  final CharacterGender gender;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final charSize = Size(size.width * 0.5, size.height * 0.9);
-    final offset = Offset((size.width - charSize.width) / 2, (size.height - charSize.height) / 2);
-    canvas.save();
-    canvas.translate(offset.dx, offset.dy);
-    paintChildCharacter(canvas, charSize, gender);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _CharacterPreviewPainter oldDelegate) => oldDelegate.gender != gender;
 }

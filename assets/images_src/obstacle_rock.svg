@@ -1,0 +1,34 @@
+<svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="rockGrad" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#C7D1D8"/>
+      <stop offset="100%" stop-color="#8E9BA6"/>
+    </radialGradient>
+  </defs>
+
+  <!-- rounded boulder body -->
+  <path d="M20,140 Q4,140 6,110 Q8,70 40,40 Q65,14 100,18 Q140,22 148,62 Q154,95 130,120 Q112,138 80,140 Q50,142 20,140 Z"
+        fill="url(#rockGrad)" stroke="#5C6670" stroke-width="8" stroke-linejoin="round"/>
+
+  <!-- crack / texture lines -->
+  <g stroke="#5C6670" stroke-width="5" stroke-linecap="round" opacity="0.55" fill="none">
+    <path d="M55,60 Q65,80 50,100"/>
+    <path d="M95,50 Q100,65 115,75"/>
+  </g>
+
+  <!-- shading dots -->
+  <g fill="#5C6670" opacity="0.3">
+    <circle cx="45" cy="105" r="6"/>
+    <circle cx="105" cy="100" r="5"/>
+    <circle cx="90" cy="70" r="4"/>
+  </g>
+
+  <!-- glossy highlight -->
+  <ellipse cx="55" cy="45" rx="28" ry="16" fill="#FFFFFF" opacity="0.35"/>
+
+  <!-- little moss tuft on top -->
+  <g fill="#7BC26B">
+    <ellipse cx="70" cy="18" rx="16" ry="9"/>
+    <ellipse cx="95" cy="14" rx="12" ry="7"/>
+  </g>
+</svg>

@@ -93,8 +93,9 @@ flutter build apk --debug
 ## Status implementasi saat ini
 
 - Karakter: anak laki-laki (peci) & anak perempuan (kerudung/jilbab),
-  keduanya seragam SD + tas, digambar programatik (belum pakai pixel-art
-  asli — lihat `lib/game/character_painter.dart`).
+  keduanya seragam SD + tas, memakai sprite hasil potong dari
+  `requirements/character-enhancements/assets/character.jpeg`
+  (lihat `assets/images/characters/` & `lib/game/components/player_component.dart`).
 - Level 1 ("Berangkat Ngaji") & Level 2 ("Perjalanan ke TPA"): gerak,
   lompat, rintangan, dan **quiz gate** (gerbang yang wajib dijawab benar
   untuk lewat, tanpa penalti kalau salah — ramah untuk usia 3-7 tahun).
