@@ -6,21 +6,22 @@ import 'package:flutter/painting.dart' show Alignment, BoxFit, ImageRepeat, pain
 import '../levels/level_data.dart';
 
 /// Platform layang tempat pemain bisa berpijak, digambar dari tekstur balok
-/// (bata/batu) yang di-tile horizontal supaya tidak gepeng di platform lebar.
-/// Jenis tekstur diselang-seling berdasarkan posisi X supaya level terasa
-/// lebih variatif tanpa perlu data tambahan di [LevelData].
+/// kayu (papan kayu lucu dengan sulur daun) yang di-tile horizontal supaya
+/// tidak gepeng di platform lebar. Jenis tekstur diselang-seling berdasarkan
+/// posisi X supaya level terasa lebih variatif tanpa perlu data tambahan di
+/// [LevelData].
 class PlatformComponent extends PositionComponent with HasGameReference {
   PlatformComponent({required PlatformSpec spec})
-      : _useStone = (spec.position.x ~/ 200).isEven,
+      : _useVariantB = (spec.position.x ~/ 200).isEven,
         super(position: spec.position.clone(), size: spec.size.clone(), anchor: Anchor.topLeft);
 
-  final bool _useStone;
+  final bool _useVariantB;
   late final Image _texture;
 
   @override
   Future<void> onLoad() async {
     _texture = await game.images.load(
-      _useStone ? 'platform/platform_stone.png' : 'platform/platform_brick.png',
+      _useVariantB ? 'platform/platform_wood_b.png' : 'platform/platform_wood_a.png',
     );
   }
 

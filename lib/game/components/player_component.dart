@@ -57,6 +57,13 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
   // kombinasi arah hadap & pose, dimuat sekali di [onLoad].
   late final Map<String, Image> _sprites;
 
+  /// Diset true oleh GameAnakSoleh begitu semua peti/quiz gate di level ini
+  /// sudah dijawab benar. Menampilkan ikon kunci kecil mengambang di atas
+  /// kepala karakter, dan menjadi syarat GoalComponent (pintu) bisa dianggap
+  /// selesai (lihat pengecekan goalRect di [update]).
+  bool hasKey = false;
+  late final Image _keyIcon;
+
   bool movingLeft = false;
   bool movingRight = false;
   bool _grounded = false;
@@ -93,6 +100,7 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
               .then((image) => MapEntry('${direction}_$pose', image)),
     ]);
     _sprites = Map.fromEntries(entries);
+    _keyIcon = await game.images.load('items/key_icon.png');
   }
 
   void requestJump() {
@@ -125,6 +133,11 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
   @override
   void update(double dt) {
     super.update(dt);
+
+    // Batasi dt sebisa mungkin supaya satu frame yang macet/telat (hiccup,
+    // app di-background lalu kembali, dsb.) tidak membuat pemain "menembus"
+    // tanah setebal [_maxFallSpeed]*dt dalam satu langkah fisika (tunneling).
+    dt = dt > 0.05 ? 0.05 : dt;
 
     if (movingLeft != movingRight) {
       _facingLeft = movingLeft;
@@ -161,9 +174,6 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
         position.x = solid.rect.right;
       }
       b = bounds;
-      if (solid.gate != null) {
-        onGateBlocked?.call(solid.gate!);
-      }
     }
 
     // Sumbu Y.
@@ -181,8 +191,14 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
         velocity.y = 0;
       }
       b = bounds;
-      if (solid.gate != null) {
-        onGateBlocked?.call(solid.gate!);
+    }
+
+    // Peti kunci tidak solid (lihat GameAnakSoleh.currentSolids) — cukup
+    // disentuh untuk memicu soalnya, supaya peti terasa seperti benda yang
+    // "didatangi", bukan tembok tak kasat mata yang menghalangi jalan.
+    for (final gate in game.quizGates) {
+      if (!gate.solved && b.overlaps(gate.bounds)) {
+        onGateBlocked?.call(gate);
       }
     }
 
@@ -222,7 +238,10 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
       kGoalSize.x,
       kGoalSize.y,
     );
-    if (bounds.overlaps(goalRect)) {
+    // Pintu di ujung level cuma bisa diselesaikan bila pemain sudah
+    // memegang kunci (semua peti/[QuizGateComponent] di level sudah
+    // dijawab benar) — lihat GameAnakSoleh yang mengeset [hasKey].
+    if (hasKey && bounds.overlaps(goalRect)) {
       onReachGoal?.call();
     }
   }
@@ -255,5 +274,15 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
       alignment: Alignment.bottomCenter,
     );
     canvas.restore();
+
+    if (hasKey) {
+      const keySize = 22.0;
+      paintImage(
+        canvas: canvas,
+        rect: Rect.fromLTWH(size.x / 2 - keySize / 2, -keySize - 6, keySize, keySize),
+        image: _keyIcon,
+        fit: BoxFit.contain,
+      );
+    }
   }
 }

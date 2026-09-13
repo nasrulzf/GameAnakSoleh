@@ -27,3 +27,6 @@ flutter:
     - assets/images/platform/
     - assets/images/obstacle/
     - assets/images/characters/
+    - assets/images/buildings/
+    - assets/images/items/
+    - assets/images/scenery/

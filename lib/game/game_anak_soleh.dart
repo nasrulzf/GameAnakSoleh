@@ -9,20 +9,22 @@ import '../app/game_progress.dart';
 import '../quiz/quiz_question.dart';
 import 'components/goal_component.dart';
 import 'components/ground_component.dart';
+import 'components/hills_component.dart';
 import 'components/obstacle_component.dart';
 import 'components/platform_component.dart';
 import 'components/player_component.dart';
 import 'components/quiz_gate_component.dart';
+import 'components/scenery_component.dart';
 import 'levels/level_data.dart';
 
-/// Zona solid yang dipakai fisika [PlayerComponent] untuk resolusi tabrakan.
-/// [gate] terisi bila zona ini berasal dari sebuah [QuizGateComponent] yang
-/// belum terpecahkan, supaya player tahu harus memicu quiz.
+/// Zona solid yang dipakai fisika [PlayerComponent] untuk resolusi tabrakan
+/// terhadap tanah/platform/rintangan. Peti kunci ([QuizGateComponent]) sudah
+/// tidak solid — pemain memicunya lewat overlap biasa (lihat
+/// [PlayerComponent.update]) supaya bisa disentuh tanpa menghalangi jalan.
 class SolidZone {
-  const SolidZone(this.rect, {this.gate});
+  const SolidZone(this.rect);
 
   final Rect rect;
-  final QuizGateComponent? gate;
 }
 
 /// Game utama untuk satu level. Dibuat ulang setiap kali pemain masuk ke
@@ -39,7 +41,12 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
   final void Function(int levelId) onLevelComplete;
 
   late final PlayerComponent player;
+  late final GoalComponent _door;
   final List<QuizGateComponent> _gates = [];
+
+  /// Dipakai [PlayerComponent] untuk cek overlap tiap frame (peti kunci
+  /// tidak lagi solid, lihat [SolidZone]).
+  List<QuizGateComponent> get quizGates => _gates;
 
   /// Soal yang sedang aktif ditampilkan ke pemain (null = tidak ada quiz).
   /// Widget Flutter (QuizOverlay/HudOverlay) mendengarkan ini via
@@ -65,9 +72,17 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
       'bg/sky_base.png',
       'bg/sky_clouds.png',
       'ground/grass_tile.png',
-      'platform/platform_brick.png',
-      'platform/platform_stone.png',
+      'platform/platform_wood_a.png',
+      'platform/platform_wood_b.png',
       'obstacle/rock.png',
+      'items/chest_closed.png',
+      'items/chest_open.png',
+      'items/key_icon.png',
+      'buildings/madrasah.png',
+      'buildings/lock_star.png',
+      'scenery/house_a.png',
+      'scenery/house_b.png',
+      'scenery/palm_tree.png',
     ]);
 
     // Background langit: 2 layer parallax (langit+matahari nyaris diam,
@@ -88,6 +103,9 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
     _sky = Parallax([skyLayer, cloudsLayer]);
     camera.backdrop.add(ParallaxComponent(parallax: _sky));
 
+    final groundY = level.worldHeight - level.groundHeight;
+    world.add(HillsComponent(worldWidth: level.worldWidth, groundY: groundY));
+    world.add(SceneryComponent(worldWidth: level.worldWidth, groundY: groundY));
     world.add(GroundComponent(level: level));
 
     for (final spec in level.platforms) {
@@ -101,7 +119,8 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
       _gates.add(gate);
       world.add(gate);
     }
-    world.add(GoalComponent(position: level.goalPosition));
+    _door = GoalComponent(position: level.goalPosition);
+    world.add(_door);
 
     player = PlayerComponent(gender: gender, startPosition: level.playerStart)
       ..onReachGoal = _handleGoalReached
@@ -120,8 +139,8 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
     _sky?.baseVelocity.x = player.velocity.x * _skyVelocityFactor;
   }
 
-  /// Dikumpulkan tiap frame dari ground + platform + obstacle + gate yang
-  /// belum solved. Dipakai [PlayerComponent] untuk resolusi tabrakan AABB.
+  /// Dikumpulkan tiap frame dari ground + platform + obstacle. Dipakai
+  /// [PlayerComponent] untuk resolusi tabrakan AABB.
   List<SolidZone> currentSolids() {
     final groundRect = Rect.fromLTWH(
       0,
@@ -135,12 +154,6 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
         SolidZone(Rect.fromLTWH(p.position.x, p.position.y, p.size.x, p.size.y)),
       for (final o in level.obstacles)
         SolidZone(Rect.fromLTWH(o.position.x, o.position.y, o.size.x, o.size.y)),
-      for (final g in _gates)
-        if (!g.solved)
-          SolidZone(
-            Rect.fromLTWH(g.spec.position.x, g.spec.position.y, g.spec.size.x, g.spec.size.y),
-            gate: g,
-          ),
     ];
   }
 
@@ -164,6 +177,12 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
       _activeGate = null;
       activeQuestion.value = null;
       resumeEngine();
+      // Begitu semua peti di level ini terpecahkan, kuncinya "didapat":
+      // tampilkan ikon kunci di atas karakter dan buka gembok pintu akhir.
+      if (_gates.every((g) => g.solved)) {
+        player.hasKey = true;
+        _door.unlock();
+      }
     }
     return correct;
   }

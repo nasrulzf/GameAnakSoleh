@@ -24,21 +24,23 @@ LevelData buildLevel1() {
       ObstacleSpec(position: Vector2(900, 720 - 80 - 40), size: Vector2(40, 40)),
       ObstacleSpec(position: Vector2(1900, 720 - 80 - 40), size: Vector2(40, 40)),
     ],
-    // Tinggi gate (220) sengaja melebihi tinggi lompat maksimum pemain
-    // (~180px, lihat PlayerComponent) supaya gate tidak bisa dilompati dan
-    // pemain wajib menjawab soal untuk lewat.
+    // Peti kunci duduk di atas tanah (tidak solid, lihat QuizGateComponent) —
+    // pemain harus menyentuhnya untuk memicu soal, dan kuncinya baru "didapat"
+    // begitu semua peti di level ini terjawab benar (lihat GameAnakSoleh).
     quizGates: [
       QuizGateSpec(
-        position: Vector2(1400, 720 - 80 - 220),
-        size: Vector2(60, 220),
+        position: Vector2(1400, 720 - 80 - 70),
+        size: Vector2(80, 70),
         question: questions[0],
       ),
       QuizGateSpec(
-        position: Vector2(2500, 720 - 80 - 220),
-        size: Vector2(60, 220),
+        position: Vector2(2500, 720 - 80 - 70),
+        size: Vector2(80, 70),
         question: questions[1],
       ),
     ],
-    goalPosition: Vector2(3100, 720 - 80 - 120),
+    // Pintu Madrasah (goal) memakai ukuran [kGoalSize]; x digeser secukupnya
+    // dari tepi dunia supaya bangunannya tidak terpotong.
+    goalPosition: Vector2(3000, 720 - 80 - 210),
   );
 }
