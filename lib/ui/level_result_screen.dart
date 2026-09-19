@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../app/game_progress.dart';
@@ -14,7 +15,8 @@ class LevelResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = context.watch<GameProgress>();
     final nextLevelId = levelId + 1;
-    final hasNextLevel = nextLevelId <= 2 && progress.isLevelUnlocked(nextLevelId);
+    final hasNextLevel =
+        nextLevelId <= LevelSelectScreen.totalLevels && progress.isLevelUnlocked(nextLevelId);
 
     return Scaffold(
       backgroundColor: const Color(0xFF8FD3F4),
@@ -36,7 +38,10 @@ class LevelResultScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           Text(
                             'Alhamdulillah, Level $levelId Selesai!',
-                            style: Theme.of(context).textTheme.headlineSmall,
+                            style: GoogleFonts.baloo2(
+                              textStyle: Theme.of(context).textTheme.headlineSmall,
+                              fontWeight: FontWeight.w700,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 32),

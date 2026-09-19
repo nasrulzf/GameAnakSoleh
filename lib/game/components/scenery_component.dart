@@ -21,6 +21,9 @@ class SceneryComponent extends PositionComponent with HasGameReference {
   late final Image _houseA;
   late final Image _houseB;
   late final Image _palmTree;
+  late final Image _mosque;
+  late final Image _bananaTree;
+  late final Image _bush;
 
   final List<_Prop> _props = [];
 
@@ -29,12 +32,15 @@ class SceneryComponent extends PositionComponent with HasGameReference {
     _houseA = await game.images.load('scenery/house_a.png');
     _houseB = await game.images.load('scenery/house_b.png');
     _palmTree = await game.images.load('scenery/palm_tree.png');
+    _mosque = await game.images.load('buildings/mosque.png');
+    _bananaTree = await game.images.load('scenery/banana_tree.png');
+    _bush = await game.images.load('scenery/bush.png');
 
     const spacing = 480.0;
     const margin = 260.0;
     var i = 0;
     for (var x = margin; x < _worldWidth - margin; x += spacing) {
-      final kind = i % 3;
+      final kind = i % 6;
       final Image image;
       final double aspect;
       final double height;
@@ -47,10 +53,22 @@ class SceneryComponent extends PositionComponent with HasGameReference {
           image = _palmTree;
           aspect = _palmTree.width / _palmTree.height;
           height = 190;
-        default:
+        case 2:
           image = _houseB;
           aspect = _houseB.width / _houseB.height;
           height = 140;
+        case 3:
+          image = _mosque;
+          aspect = _mosque.width / _mosque.height;
+          height = 200;
+        case 4:
+          image = _bananaTree;
+          aspect = _bananaTree.width / _bananaTree.height;
+          height = 130;
+        default:
+          image = _bush;
+          aspect = _bush.width / _bush.height;
+          height = 70;
       }
       _props.add(_Prop(image: image, x: x, width: height * aspect, height: height));
       i++;

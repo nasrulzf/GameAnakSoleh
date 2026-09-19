@@ -5,12 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../app/game_progress.dart';
+import '../audio/sound_service.dart';
 import '../game/game_anak_soleh.dart';
 import '../game/hud_overlay.dart';
 import '../game/levels/level_1.dart';
 import '../game/levels/level_2.dart';
 import '../quiz/quiz_overlay.dart';
+import 'all_levels_complete_screen.dart';
 import 'level_result_screen.dart';
+import 'level_select_screen.dart';
 
 class GameplayScreen extends StatefulWidget {
   const GameplayScreen({super.key, required this.levelId});
@@ -30,15 +33,21 @@ class _GameplayScreenState extends State<GameplayScreen> {
     final gender = context.read<GameProgress>().gender ?? CharacterGender.boy;
     final level = widget.levelId == 1 ? buildLevel1() : buildLevel2();
     _game = GameAnakSoleh(level: level, gender: gender, onLevelComplete: _handleLevelComplete);
+    SoundService.playGameStart();
   }
 
   void _handleLevelComplete(int levelId) {
     final progress = context.read<GameProgress>();
+    final isLastLevel = levelId >= LevelSelectScreen.totalLevels;
     scheduleMicrotask(() async {
       await progress.completeLevel(levelId);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => LevelResultScreen(levelId: levelId)),
+        MaterialPageRoute(
+          builder: (_) => isLastLevel
+              ? AllLevelsCompleteScreen(levelId: levelId)
+              : LevelResultScreen(levelId: levelId),
+        ),
       );
     });
   }

@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../app/game_progress.dart';
+import '../audio/sound_service.dart';
 import '../quiz/quiz_question.dart';
 import 'components/goal_component.dart';
 import 'components/ground_component.dart';
 import 'components/hills_component.dart';
+import 'components/ladder_component.dart';
 import 'components/obstacle_component.dart';
 import 'components/platform_component.dart';
 import 'components/player_component.dart';
@@ -80,9 +82,13 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
       'items/key_icon.png',
       'buildings/madrasah.png',
       'buildings/lock_star.png',
+      'buildings/mosque.png',
       'scenery/house_a.png',
       'scenery/house_b.png',
       'scenery/palm_tree.png',
+      'scenery/banana_tree.png',
+      'scenery/bush.png',
+      'platform/ladder.png',
     ]);
 
     // Background langit: 2 layer parallax (langit+matahari nyaris diam,
@@ -121,6 +127,14 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
     }
     _door = GoalComponent(position: level.goalPosition);
     world.add(_door);
+
+    // Tangga dekoratif bersandar di dinding madrasah (lihat
+    // full-capture-expectations.jpeg) -- murni visual, lihat LadderComponent.
+    final ladderSize = Vector2(118, 170);
+    world.add(LadderComponent(
+      position: Vector2(level.goalPosition.x - 100, groundY - ladderSize.y),
+      size: ladderSize,
+    ));
 
     player = PlayerComponent(gender: gender, startPosition: level.playerStart)
       ..onReachGoal = _handleGoalReached
@@ -162,6 +176,7 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
     _activeGate = gate;
     activeQuestion.value = gate.spec.question;
     pauseEngine();
+    SoundService.playQuizTrigger();
   }
 
   /// Dipanggil dari QuizOverlay saat pemain memilih jawaban ke-[chosenIndex].
@@ -177,12 +192,15 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
       _activeGate = null;
       activeQuestion.value = null;
       resumeEngine();
+      SoundService.playAnswerCorrect();
       // Begitu semua peti di level ini terpecahkan, kuncinya "didapat":
       // tampilkan ikon kunci di atas karakter dan buka gembok pintu akhir.
       if (_gates.every((g) => g.solved)) {
         player.hasKey = true;
         _door.unlock();
       }
+    } else {
+      SoundService.playAnswerWrong();
     }
     return correct;
   }
@@ -191,6 +209,7 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
     if (_completed) return;
     _completed = true;
     pauseEngine();
+    SoundService.playLevelComplete();
     onLevelComplete(level.id);
   }
 

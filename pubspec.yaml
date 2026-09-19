@@ -10,9 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
   flame: ^1.18.0
+  flame_audio: ^2.10.7
   provider: ^6.1.2
   shared_preferences: ^2.2.3
   cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  auto_size_text: ^3.0.0
 
 dev_dependencies:
   flutter_test:
@@ -30,3 +33,5 @@ flutter:
     - assets/images/buildings/
     - assets/images/items/
     - assets/images/scenery/
+    - assets/sounds/sfx/
+    - assets/sounds/music/

@@ -25,11 +25,11 @@ class CharacterSelectScreen extends StatelessWidget {
                 children: [
                   _CharacterCard(
                     gender: CharacterGender.boy,
-                    description: 'Pakai peci dan gendong tas',
+                    description: 'Siswa laki-laki dengan tas',
                   ),
                   _CharacterCard(
                     gender: CharacterGender.girl,
-                    description: 'Pakai kerudung/jilbab dan gendong tas',
+                    description: 'Siswa perempuan dengan tas',
                   ),
                 ],
               ),

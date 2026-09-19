@@ -12,6 +12,10 @@ class LevelSelectScreen extends StatelessWidget {
     (id: 2, title: 'Level 2', subtitle: 'Perjalanan ke TPA'),
   ];
 
+  /// Jumlah total level yang ada di game, sumber kebenaran tunggal supaya
+  /// tidak hardcode angka yang sama di layar lain (mis. `LevelResultScreen`).
+  static int get totalLevels => _levels.length;
+
   @override
   Widget build(BuildContext context) {
     final progress = context.watch<GameProgress>();

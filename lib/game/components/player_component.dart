@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/painting.dart' show Alignment, BoxFit, paintImage;
 
 import '../../app/game_progress.dart';
+import '../../audio/sound_service.dart';
 import '../game_anak_soleh.dart';
 import 'goal_component.dart';
 import 'quiz_gate_component.dart';
@@ -157,6 +158,7 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
       // Stretch: badan memanjang sesaat saat menolak dari tanah.
       _squashX = 0.82;
       _squashY = 1.22;
+      SoundService.playJump();
     }
     _jumpQueued = false;
 
