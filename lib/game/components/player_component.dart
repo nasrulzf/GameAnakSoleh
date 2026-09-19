@@ -34,6 +34,10 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
   static const double _jumpSpeed = 760;
   static const double _maxFallSpeed = 900;
 
+  /// Total kesempatan lompat sebelum harus mendarat lagi: 1 dari tanah + 1
+  /// tambahan di udara (double jump). Lihat requirements/double-jump-feature.
+  static const int _maxJumps = 2;
+
   /// Seberapa cepat kecepatan horizontal naik menuju [_speed] saat tombol
   /// ditekan, dan turun menuju 0 saat dilepas. Nilainya dijaga cukup tinggi
   /// (mencapai kecepatan penuh dalam < 0.3 detik) supaya kontrol tetap
@@ -71,6 +75,11 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
   bool movingDown = false;
   bool _grounded = false;
   bool _jumpQueued = false;
+
+  /// Kesempatan lompat yang sudah dipakai sejak terakhir mendarat (lihat
+  /// [_maxJumps]). Direset ke 0 saat [_grounded] kembali true & saat
+  /// [_respawn].
+  int _jumpsUsed = 0;
 
   /// Kecepatan naik/turun saat memanjat tangga interaktif (lihat
   /// [LadderComponent.interactive]).
@@ -111,7 +120,7 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
   }
 
   void requestJump() {
-    if (_grounded) {
+    if (_grounded || _jumpsUsed < _maxJumps) {
       _jumpQueued = true;
     }
   }
@@ -122,6 +131,7 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
     position.setFrom(_startPosition);
     velocity.setZero();
     _grounded = false;
+    _jumpsUsed = 0;
     _squashX = 1;
     _squashY = 1;
     _walkPhase = 0;
@@ -166,12 +176,16 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
     }
 
     final wasGrounded = _grounded;
-    if (_jumpQueued && _grounded) {
+    if (_jumpQueued && !onLadder && (_grounded || _jumpsUsed < _maxJumps)) {
       velocity.y = -_jumpSpeed;
       _grounded = false;
-      // Stretch: badan memanjang sesaat saat menolak dari tanah.
-      _squashX = 0.82;
-      _squashY = 1.22;
+      _jumpsUsed++;
+      // Stretch: badan memanjang sesaat saat menolak dari tanah/udara.
+      // Lompatan kedua (double jump) diberi stretch sedikit lebih ekstrim
+      // sebagai umpan balik visual bahwa ini aksi baru, bukan glitch.
+      final isAirJump = _jumpsUsed > 1;
+      _squashX = isAirJump ? 0.78 : 0.82;
+      _squashY = isAirJump ? 1.28 : 1.22;
       SoundService.playJump();
     }
     _jumpQueued = false;
@@ -219,6 +233,8 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
     }
 
     if (!wasGrounded && _grounded) {
+      // Mendarat: isi ulang kuota double jump.
+      _jumpsUsed = 0;
       // Squash: badan memipih sesaat saat mendarat, lalu memantul balik
       // normal di bawah — inilah yang membuat lompatan terasa "bumpy".
       _squashX = 1.2;
