@@ -29,7 +29,7 @@ class QuizBank {
     QuizQuestion(
       id: 'rukun_islam_3',
       category: QuizCategory.rukunIslam,
-      question: 'Bulan puasa umat Islam disebut bulan?',
+      question: 'Di Bulan Apa kita wajib berpuasa selama 1 bulan penuh?',
       options: ['Syawal', 'Ramadhan', 'Rajab', 'Muharram'],
       correctIndex: 1,
     ),
@@ -45,8 +45,8 @@ class QuizBank {
     QuizQuestion(
       id: 'rukun_iman_1',
       category: QuizCategory.rukunIman,
-      question: 'Kita wajib percaya bahwa Allah itu?',
-      options: ['Ada', 'Tidak ada', 'Banyak', 'Kadang ada'],
+      question: 'Rukun Iman itu ada berapa ?',
+      options: ['6', '5', '4', '3'],
       correctIndex: 0,
     ),
     QuizQuestion(
@@ -174,8 +174,8 @@ class QuizBank {
     QuizQuestion(
       id: 'adab_harian_ep1_02',
       category: QuizCategory.adabHarian,
-      question: 'Saat berjalan di jalan, sebaiknya kita berjalan di sebelah mana?',
-      options: ['Tengah jalan', 'Sebelah kanan', 'Sambil berlarian', 'Sambil menutup mata'],
+      question: 'Nabi mencontohkan makan dengan menggunakan tangan ?',
+      options: ['Kiri', 'Kanan', 'Keduanya', 'Tidak pakai tangan'],
       correctIndex: 1,
     ),
     QuizQuestion(
@@ -200,8 +200,8 @@ class QuizBank {
     QuizQuestion(
       id: 'adab_harian_ep1_05',
       category: QuizCategory.adabHarian,
-      question: 'Ketika bertemu ustadz/ustadzah, sikap yang baik adalah?',
-      options: ['Bersalaman dengan sopan', 'Berlari menjauh', 'Berteriak', 'Menutup wajah'],
+      question: 'Ketika bertemu dengan teman, sikap yang baik adalah ?',
+      options: ['Mengucapkan salam', 'Berlari menjauh', 'Berteriak', 'Menutup wajah'],
       correctIndex: 0,
     ),
     QuizQuestion(
