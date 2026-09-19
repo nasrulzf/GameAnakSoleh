@@ -3,14 +3,23 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart' show Alignment, BoxFit, paintImage;
 
-/// Tangga kayu dekoratif berdiri di dekat gedung tujuan (lihat
-/// full-capture-expectations.jpeg), murni visual: tidak didaftarkan di
-/// LevelData.platforms/.obstacles sehingga otomatis tidak ikut resolusi
-/// tabrakan (lihat GameAnakSoleh.currentSolids) dan tidak menambah mekanik
-/// panjat baru.
+/// Tangga kayu berdiri di dekat gedung tujuan (lihat
+/// full-capture-expectations.jpeg). Secara default murni dekoratif: tidak
+/// didaftarkan di LevelData.platforms/.obstacles sehingga otomatis tidak ikut
+/// resolusi tabrakan (lihat GameAnakSoleh.currentSolids) dan tidak menambah
+/// mekanik panjat baru.
+///
+/// Bila [interactive] true (dibuat dari [LadderSpec] di [LevelData.ladders],
+/// lihat GameAnakSoleh.onLoad), tangga ini bisa dipanjat: [PlayerComponent]
+/// mengecek overlap terhadap [bounds] untuk menonaktifkan gravitasi &
+/// menggerakkan pemain naik/turun langsung.
 class LadderComponent extends PositionComponent with HasGameReference {
-  LadderComponent({required Vector2 position, required Vector2 size})
+  LadderComponent({required Vector2 position, required Vector2 size, this.interactive = false})
       : super(position: position.clone(), size: size.clone(), anchor: Anchor.topLeft);
+
+  final bool interactive;
+
+  Rect get bounds => Rect.fromLTWH(position.x, position.y, size.x, size.y);
 
   late final Image _texture;
 

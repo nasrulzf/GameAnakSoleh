@@ -31,7 +31,12 @@ void main() {
       // ignore: avoid_print
       print('STEP 1: building level');
       final level = buildLevel1();
-      final game = GameAnakSoleh(level: level, gender: CharacterGender.boy, onLevelComplete: (_) {});
+      final game = GameAnakSoleh(
+        level: level,
+        gender: CharacterGender.boy,
+        onLevelComplete: (_, __, ___) {},
+        onLevelFailed: (_) {},
+      );
       final question = level.quizGates.first.question;
 
       // ignore: avoid_print

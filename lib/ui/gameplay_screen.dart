@@ -8,12 +8,11 @@ import '../app/game_progress.dart';
 import '../audio/sound_service.dart';
 import '../game/game_anak_soleh.dart';
 import '../game/hud_overlay.dart';
-import '../game/levels/level_1.dart';
-import '../game/levels/level_2.dart';
+import '../game/levels/level_registry.dart';
 import '../quiz/quiz_overlay.dart';
 import 'all_levels_complete_screen.dart';
+import 'level_failed_screen.dart';
 import 'level_result_screen.dart';
-import 'level_select_screen.dart';
 
 class GameplayScreen extends StatefulWidget {
   const GameplayScreen({super.key, required this.levelId});
@@ -31,25 +30,37 @@ class _GameplayScreenState extends State<GameplayScreen> {
   void initState() {
     super.initState();
     final gender = context.read<GameProgress>().gender ?? CharacterGender.boy;
-    final level = widget.levelId == 1 ? buildLevel1() : buildLevel2();
-    _game = GameAnakSoleh(level: level, gender: gender, onLevelComplete: _handleLevelComplete);
+    final level = kLevelBuilders[widget.levelId]!();
+    _game = GameAnakSoleh(
+      level: level,
+      gender: gender,
+      onLevelComplete: _handleLevelComplete,
+      onLevelFailed: _handleLevelFailed,
+    );
     SoundService.playGameStart();
   }
 
-  void _handleLevelComplete(int levelId) {
+  void _handleLevelComplete(int levelId, int score, bool perfect) {
     final progress = context.read<GameProgress>();
-    final isLastLevel = levelId >= LevelSelectScreen.totalLevels;
+    final isFinale = levelId == kFinalLevelId;
     scheduleMicrotask(() async {
       await progress.completeLevel(levelId);
+      await progress.recordLevelResult(levelId, score, perfect: perfect);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => isLastLevel
+          builder: (_) => isFinale
               ? AllLevelsCompleteScreen(levelId: levelId)
-              : LevelResultScreen(levelId: levelId),
+              : LevelResultScreen(levelId: levelId, score: score, perfect: perfect),
         ),
       );
     });
+  }
+
+  void _handleLevelFailed(int score) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => LevelFailedScreen(levelId: widget.levelId, score: score)),
+    );
   }
 
   @override

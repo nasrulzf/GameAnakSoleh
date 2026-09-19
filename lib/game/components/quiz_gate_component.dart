@@ -13,6 +13,7 @@ import 'package:flutter/painting.dart'
         TextStyle,
         paintImage;
 
+import '../../quiz/quiz_question.dart';
 import '../levels/level_data.dart';
 
 /// Peti berisi kunci: pemain cukup menyentuhnya (tidak menghalangi jalan,
@@ -21,11 +22,20 @@ import '../levels/level_data.dart';
 /// versi terbuka & kosong) — kunci itulah yang membuka gembok pintu di akhir
 /// level begitu semua peti di level terpecahkan (lihat GoalComponent &
 /// PlayerComponent.hasKey).
+///
+/// Mendukung "gate ganda" (mis. Level 45) lewat [QuizGateSpec.extraQuestions]:
+/// [currentQuestion] menampilkan soal ke-[_questionIndex], dan
+/// [advanceToNextQuestion] dipanggil GameAnakSoleh saat satu soal terjawab
+/// benar tapi masih ada soal berikutnya — peti baru [markSolved] setelah
+/// seluruh soal di [allQuestions] terjawab benar berurutan.
 class QuizGateComponent extends PositionComponent with HasGameReference {
   QuizGateComponent({required this.spec})
-      : super(position: spec.position.clone(), size: spec.size.clone(), anchor: Anchor.topLeft);
+      : allQuestions = [spec.question, ...?spec.extraQuestions],
+        super(position: spec.position.clone(), size: spec.size.clone(), anchor: Anchor.topLeft);
 
   final QuizGateSpec spec;
+  final List<QuizQuestion> allQuestions;
+  int _questionIndex = 0;
 
   bool solved = false;
 
@@ -36,6 +46,13 @@ class QuizGateComponent extends PositionComponent with HasGameReference {
   double _bobPhase = 0;
 
   Rect get bounds => Rect.fromLTWH(position.x, position.y, size.x, size.y);
+
+  QuizQuestion get currentQuestion => allQuestions[_questionIndex];
+  bool get hasMoreQuestions => _questionIndex < allQuestions.length - 1;
+
+  void advanceToNextQuestion() {
+    if (hasMoreQuestions) _questionIndex++;
+  }
 
   void markSolved() {
     if (solved) return;

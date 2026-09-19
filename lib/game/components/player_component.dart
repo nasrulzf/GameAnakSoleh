@@ -67,8 +67,14 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
 
   bool movingLeft = false;
   bool movingRight = false;
+  bool movingUp = false;
+  bool movingDown = false;
   bool _grounded = false;
   bool _jumpQueued = false;
+
+  /// Kecepatan naik/turun saat memanjat tangga interaktif (lihat
+  /// [LadderComponent.interactive]).
+  static const double _climbSpeed = 160;
 
   /// Arah hadap terakhir; hanya berubah saat persis satu tombol arah
   /// ditekan, supaya karakter tidak "meloncat" balik menghadap kanan saat
@@ -148,8 +154,16 @@ class PlayerComponent extends PositionComponent with HasGameReference<GameAnakSo
     final rate = targetSpeed == 0 ? _deceleration : _acceleration;
     velocity.x = _moveToward(velocity.x, targetSpeed, rate * dt);
 
-    velocity.y += _gravity * dt;
-    if (velocity.y > _maxFallSpeed) velocity.y = _maxFallSpeed;
+    // Tangga interaktif (lihat LadderComponent.interactive): selagi overlap,
+    // gravitasi diabaikan dan pemain naik/turun langsung mengikuti input,
+    // atau diam di tempat bila tidak menekan atas/bawah.
+    final onLadder = game.ladders.any((l) => bounds.overlaps(l.bounds));
+    if (onLadder) {
+      velocity.y = movingUp == movingDown ? 0 : (movingUp ? -_climbSpeed : _climbSpeed);
+    } else {
+      velocity.y += _gravity * dt;
+      if (velocity.y > _maxFallSpeed) velocity.y = _maxFallSpeed;
+    }
 
     final wasGrounded = _grounded;
     if (_jumpQueued && _grounded) {

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
@@ -8,11 +10,14 @@ import 'package:flutter/widgets.dart';
 import '../app/game_progress.dart';
 import '../audio/sound_service.dart';
 import '../quiz/quiz_question.dart';
+import 'components/crumbling_platform_component.dart';
 import 'components/goal_component.dart';
 import 'components/ground_component.dart';
 import 'components/hills_component.dart';
 import 'components/ladder_component.dart';
+import 'components/moving_platform_component.dart';
 import 'components/obstacle_component.dart';
+import 'components/patrol_obstacle_component.dart';
 import 'components/platform_component.dart';
 import 'components/player_component.dart';
 import 'components/quiz_gate_component.dart';
@@ -36,24 +41,53 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
     required this.level,
     required this.gender,
     required this.onLevelComplete,
+    required this.onLevelFailed,
   });
 
   final LevelData level;
   final CharacterGender gender;
-  final void Function(int levelId) onLevelComplete;
+  final void Function(int levelId, int score, bool perfect) onLevelComplete;
+  final void Function(int score) onLevelFailed;
 
   late final PlayerComponent player;
   late final GoalComponent _door;
   final List<QuizGateComponent> _gates = [];
+  final List<LadderComponent> _interactiveLadders = [];
+  final List<MovingPlatformComponent> _movingPlatforms = [];
+  final List<CrumblingPlatformComponent> _crumblingPlatforms = [];
+  final List<PatrolObstacleComponent> _patrolObstacles = [];
 
   /// Dipakai [PlayerComponent] untuk cek overlap tiap frame (peti kunci
   /// tidak lagi solid, lihat [SolidZone]).
   List<QuizGateComponent> get quizGates => _gates;
 
+  /// Tangga interaktif (dari [LevelData.ladders]) yang bisa dipanjat pemain —
+  /// berbeda dari tangga dekoratif hardcoded dekat pintu madrasah.
+  List<LadderComponent> get ladders => _interactiveLadders;
+
   /// Soal yang sedang aktif ditampilkan ke pemain (null = tidak ada quiz).
   /// Widget Flutter (QuizOverlay/HudOverlay) mendengarkan ini via
   /// ValueListenableBuilder.
   final ValueNotifier<QuizQuestion?> activeQuestion = ValueNotifier(null);
+
+  /// Nyawa pemain untuk attempt level saat ini (bukan dipersist — reset ke 5
+  /// tiap kali GameAnakSoleh dibuat ulang, lihat GameplayScreen). Berkurang
+  /// 1 tiap salah jawab; 0 = level gagal (lihat [onLevelFailed]).
+  final ValueNotifier<int> hearts = ValueNotifier(5);
+
+  /// Skor attempt saat ini (base + bonus kecepatan + bonus heart + bonus
+  /// waktu spesial). Lihat requirements/add-50-level-scenario/requirement.md
+  /// Bagian C untuk formula lengkap.
+  final ValueNotifier<int> score = ValueNotifier(0);
+
+  /// Sisa waktu bonus (detik, dibulatkan ke atas). Null bila level ini tidak
+  /// punya timer (Episode 1-3) — HUD tidak menampilkan apa pun saat null.
+  /// Waktu habis TIDAK menggagalkan level, hanya membuat bonus_waktu_spesial
+  /// jadi 0 (lihat [_handleGoalReached]).
+  final ValueNotifier<int?> remainingSeconds = ValueNotifier(null);
+
+  double? _timeLeftSeconds;
+  DateTime? _gateOpenedAt;
 
   QuizGateComponent? _activeGate;
   bool _completed = false;
@@ -125,6 +159,30 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
       _gates.add(gate);
       world.add(gate);
     }
+    for (final spec in level.movingPlatforms) {
+      final platform = MovingPlatformComponent(spec: spec);
+      _movingPlatforms.add(platform);
+      world.add(platform);
+    }
+    for (final spec in level.crumblingPlatforms) {
+      final platform = CrumblingPlatformComponent(spec: spec);
+      _crumblingPlatforms.add(platform);
+      world.add(platform);
+    }
+    for (final spec in level.patrolObstacles) {
+      final obstacle = PatrolObstacleComponent(spec: spec);
+      _patrolObstacles.add(obstacle);
+      world.add(obstacle);
+    }
+    for (final spec in level.ladders) {
+      final ladder = LadderComponent(
+        position: spec.position,
+        size: spec.size,
+        interactive: true,
+      );
+      _interactiveLadders.add(ladder);
+      world.add(ladder);
+    }
     _door = GoalComponent(position: level.goalPosition);
     world.add(_door);
 
@@ -143,6 +201,10 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
 
     camera.follow(player, maxSpeed: double.infinity);
     camera.viewfinder.anchor = Anchor.center;
+
+    score.value = 100 + (level.episode - 1) * 20;
+    _timeLeftSeconds = level.timeLimitSeconds?.toDouble();
+    remainingSeconds.value = level.timeLimitSeconds;
   }
 
   @override
@@ -151,10 +213,17 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
     // Awan & langit hanya bergerak selagi karakter berjalan, dan pelan
     // (dikalikan _skyVelocityFactor) supaya terasa jauh di kejauhan.
     _sky?.baseVelocity.x = player.velocity.x * _skyVelocityFactor;
+
+    // Countdown bonus (hanya Episode spesial, lihat LevelData.timeLimitSeconds)
+    // — murni memengaruhi skor akhir, tidak pernah menggagalkan level.
+    if (_timeLeftSeconds != null) {
+      _timeLeftSeconds = (_timeLeftSeconds! - dt).clamp(0, double.infinity);
+      remainingSeconds.value = _timeLeftSeconds!.ceil();
+    }
   }
 
-  /// Dikumpulkan tiap frame dari ground + platform + obstacle. Dipakai
-  /// [PlayerComponent] untuk resolusi tabrakan AABB.
+  /// Dikumpulkan tiap frame dari ground + platform + obstacle (statis &
+  /// dinamis). Dipakai [PlayerComponent] untuk resolusi tabrakan AABB.
   List<SolidZone> currentSolids() {
     final groundRect = Rect.fromLTWH(
       0,
@@ -168,29 +237,52 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
         SolidZone(Rect.fromLTWH(p.position.x, p.position.y, p.size.x, p.size.y)),
       for (final o in level.obstacles)
         SolidZone(Rect.fromLTWH(o.position.x, o.position.y, o.size.x, o.size.y)),
+      for (final p in _movingPlatforms) SolidZone(p.currentRect),
+      for (final c in _crumblingPlatforms)
+        if (c.isSolidNow) SolidZone(c.currentRect),
+      for (final o in _patrolObstacles) SolidZone(o.currentRect),
     ];
   }
 
   void _handleGateBlocked(QuizGateComponent gate) {
     if (_activeGate != null) return;
     _activeGate = gate;
-    activeQuestion.value = gate.spec.question;
+    activeQuestion.value = gate.currentQuestion;
+    _gateOpenedAt = DateTime.now();
     pauseEngine();
     SoundService.playQuizTrigger();
   }
 
   /// Dipanggil dari QuizOverlay saat pemain memilih jawaban ke-[chosenIndex].
-  /// Jawaban salah tidak memberi penalti (usia 3-7 tahun) — overlay tetap
-  /// tampil sampai pemain menjawab benar. Mengembalikan true bila benar.
+  /// Jawaban salah mengurangi [hearts] (lihat requirement Bagian B) — popup
+  /// tetap tampil sampai pemain menjawab benar, tidak pernah mem-block
+  /// lanjut. Mengembalikan true bila benar.
   bool answerQuiz(int chosenIndex) {
     final gate = _activeGate;
     final question = activeQuestion.value;
     if (gate == null || question == null) return false;
     final correct = question.isCorrect(chosenIndex);
     if (correct) {
+      final elapsedSeconds = _gateOpenedAt == null
+          ? 0.0
+          : DateTime.now().difference(_gateOpenedAt!).inMilliseconds / 1000;
+      final speedBonus = math.max(20, 100 - (elapsedSeconds * 5).round());
+      score.value += speedBonus;
+
+      if (gate.hasMoreQuestions) {
+        // Gate ganda (lihat QuizGateSpec.extraQuestions): tampilkan soal
+        // berikutnya di gate yang sama, belum markSolved dulu.
+        gate.advanceToNextQuestion();
+        activeQuestion.value = gate.currentQuestion;
+        _gateOpenedAt = DateTime.now();
+        SoundService.playAnswerCorrect();
+        return true;
+      }
+
       gate.markSolved();
       _activeGate = null;
       activeQuestion.value = null;
+      _gateOpenedAt = null;
       resumeEngine();
       SoundService.playAnswerCorrect();
       // Begitu semua peti di level ini terpecahkan, kuncinya "didapat":
@@ -201,6 +293,10 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
       }
     } else {
       SoundService.playAnswerWrong();
+      hearts.value -= 1;
+      if (hearts.value <= 0) {
+        onLevelFailed(score.value);
+      }
     }
     return correct;
   }
@@ -210,7 +306,14 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
     _completed = true;
     pauseEngine();
     SoundService.playLevelComplete();
-    onLevelComplete(level.id);
+
+    final heartBonus = hearts.value * 30;
+    final timeBonus =
+        (level.timeLimitSeconds != null && (_timeLeftSeconds ?? 0) > 0) ? 300 : 0;
+    score.value += heartBonus + timeBonus;
+    final perfect = hearts.value == 5;
+
+    onLevelComplete(level.id, score.value, perfect);
   }
 
   @override
@@ -219,6 +322,13 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
         keysPressed.contains(LogicalKeyboardKey.keyA);
     player.movingRight = keysPressed.contains(LogicalKeyboardKey.arrowRight) ||
         keysPressed.contains(LogicalKeyboardKey.keyD);
+    // Naik/turun tangga interaktif (lihat LadderComponent.interactive) —
+    // hanya berefek saat pemain sedang overlap tangga (lihat
+    // PlayerComponent.update).
+    player.movingUp = keysPressed.contains(LogicalKeyboardKey.arrowUp) ||
+        keysPressed.contains(LogicalKeyboardKey.keyW);
+    player.movingDown = keysPressed.contains(LogicalKeyboardKey.arrowDown) ||
+        keysPressed.contains(LogicalKeyboardKey.keyS);
     if (event is KeyDownEvent &&
         (event.logicalKey == LogicalKeyboardKey.space ||
             event.logicalKey == LogicalKeyboardKey.arrowUp ||
@@ -231,6 +341,9 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     activeQuestion.dispose();
+    hearts.dispose();
+    score.dispose();
+    remainingSeconds.dispose();
     super.onRemove();
   }
 }

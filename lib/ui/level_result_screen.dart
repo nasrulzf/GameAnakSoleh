@@ -3,20 +3,29 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../app/game_progress.dart';
+import '../game/levels/level_registry.dart';
 import 'gameplay_screen.dart';
 import 'level_select_screen.dart';
 
 class LevelResultScreen extends StatelessWidget {
-  const LevelResultScreen({super.key, required this.levelId});
+  const LevelResultScreen({
+    super.key,
+    required this.levelId,
+    required this.score,
+    required this.perfect,
+  });
 
   final int levelId;
+  final int score;
+  final bool perfect;
 
   @override
   Widget build(BuildContext context) {
     final progress = context.watch<GameProgress>();
     final nextLevelId = levelId + 1;
     final hasNextLevel =
-        nextLevelId <= LevelSelectScreen.totalLevels && progress.isLevelUnlocked(nextLevelId);
+        kLevelBuilders.containsKey(nextLevelId) && progress.isLevelUnlocked(nextLevelId);
+    final bestScore = progress.bestScore[levelId] ?? score;
 
     return Scaffold(
       backgroundColor: const Color(0xFF8FD3F4),
@@ -44,6 +53,29 @@ class LevelResultScreen extends StatelessWidget {
                             ),
                             textAlign: TextAlign.center,
                           ),
+                          if (perfect) ...[
+                            const SizedBox(height: 8),
+                            const Chip(
+                              avatar: Icon(Icons.star_rounded, color: Color(0xFFFACC15)),
+                              label: Text('Perfect!'),
+                              backgroundColor: Colors.white,
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          Text(
+                            'Skor: $score',
+                            style: GoogleFonts.baloo2(
+                              textStyle: Theme.of(context).textTheme.titleMedium,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Skor terbaik: $bestScore',
+                            style: GoogleFonts.baloo2(
+                              textStyle: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
                           const SizedBox(height: 32),
                           if (hasNextLevel)
                             FilledButton(
@@ -54,6 +86,14 @@ class LevelResultScreen extends StatelessWidget {
                                 );
                               },
                               child: Text('Lanjut ke Level $nextLevelId'),
+                            )
+                          else if (!kLevelBuilders.containsKey(nextLevelId))
+                            Text(
+                              'Episode berikutnya segera hadir!',
+                              style: GoogleFonts.baloo2(
+                                textStyle: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           const SizedBox(height: 12),
                           OutlinedButton(
