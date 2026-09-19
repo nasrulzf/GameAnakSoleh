@@ -21,6 +21,15 @@ class GameProgress extends ChangeNotifier {
       : _gender = gender,
         _unlockedLevel = unlockedLevel;
 
+  /// Instance kosong (belum baca SharedPreferences), dipakai sebagai value
+  /// awal Provider di root app supaya widget tree sudah bisa dibangun
+  /// sinkron sebelum [SplashScreen] menyelesaikan preload async lewat
+  /// [hydrate] — lihat requirements/feature-game-icon/requirement.md.
+  GameProgress.empty()
+      : _prefs = null,
+        _gender = null,
+        _unlockedLevel = 1;
+
   static Future<GameProgress> load() async {
     final prefs = await SharedPreferences.getInstance();
     final genderIndex = prefs.getInt(_prefsKeyGender);
@@ -29,7 +38,7 @@ class GameProgress extends ChangeNotifier {
     return GameProgress._(prefs, gender: gender, unlockedLevel: unlockedLevel);
   }
 
-  final SharedPreferences _prefs;
+  SharedPreferences? _prefs;
 
   CharacterGender? _gender;
   CharacterGender? get gender => _gender;
@@ -40,10 +49,24 @@ class GameProgress extends ChangeNotifier {
 
   bool isLevelUnlocked(int level) => level <= _unlockedLevel;
 
+  /// Mengisi instance (yang mungkin dibuat lewat [GameProgress.empty]) dengan
+  /// data asli dari SharedPreferences. Dipanggil sekali oleh [SplashScreen]
+  /// di awal alur preload, sebelum layar lain sempat memanggil [setGender]
+  /// atau [completeLevel].
+  Future<void> hydrate() async {
+    final prefs = await SharedPreferences.getInstance();
+    _prefs = prefs;
+    final genderIndex = prefs.getInt(_prefsKeyGender);
+    _gender = genderIndex == null ? null : CharacterGender.values[genderIndex];
+    _unlockedLevel = prefs.getInt(_prefsKeyUnlockedLevel) ?? 1;
+    notifyListeners();
+  }
+
   Future<void> setGender(CharacterGender gender) async {
     _gender = gender;
     notifyListeners();
-    await _prefs.setInt(_prefsKeyGender, gender.index);
+    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    await prefs.setInt(_prefsKeyGender, gender.index);
   }
 
   /// Dipanggil saat pemain menyelesaikan sebuah level. Membuka level berikutnya.
@@ -52,7 +75,8 @@ class GameProgress extends ChangeNotifier {
     if (nextUnlock > _unlockedLevel) {
       _unlockedLevel = nextUnlock;
       notifyListeners();
-      await _prefs.setInt(_prefsKeyUnlockedLevel, _unlockedLevel);
+      final prefs = _prefs ??= await SharedPreferences.getInstance();
+      await prefs.setInt(_prefsKeyUnlockedLevel, _unlockedLevel);
     }
   }
 }

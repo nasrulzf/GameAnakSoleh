@@ -43,6 +43,11 @@ class SoundService {
     }
   }
 
+  /// Memuat semua SFX ke cache secara eksplisit — dipanggil dari
+  /// [SplashScreen] supaya sudah "hangat" sebelum gameplay pertama, alih-alih
+  /// menunggu pemutaran suara pertama memicunya.
+  static Future<void> preload() => _ensurePreloaded();
+
   static Future<void> _play(String fileName) async {
     await _ensurePreloaded();
     try {
