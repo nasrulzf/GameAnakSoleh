@@ -35,7 +35,7 @@ class SoundService {
   static Future<void> _ensurePreloaded() async {
     if (_preloadAttempted) return;
     _preloadAttempted = true;
-    FlameAudio.audioCache.prefix = 'sounds/sfx/';
+    FlameAudio.audioCache.prefix = 'assets/sounds/sfx/';
     try {
       await FlameAudio.audioCache.loadAll(_allSfx);
     } catch (error) {
