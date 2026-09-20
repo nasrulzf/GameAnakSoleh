@@ -99,8 +99,31 @@ class GameAnakSoleh extends FlameGame with KeyboardEvents {
   Parallax? _sky;
   static const double _skyVelocityFactor = 0.12;
 
+  /// Tinggi dunia acuan yang dipakai semua [LevelData] (lihat
+  /// `worldHeight: 720` di tiap file level). Dipakai untuk menghitung zoom
+  /// kamera di [onGameResize] -- tanpa ini, zoom kamera tetap 1.0 (bawaan
+  /// Flame) sehingga 1 unit dunia = 1 logical pixel device apa adanya.
+  /// Akibatnya tinggi dunia yang terlihat berubah-ubah mengikuti resolusi
+  /// logis layar: di device dengan logical height jauh lebih besar dari 720
+  /// (mis. karena pengaturan "screen zoom"/density yang lebih rapat seperti
+  /// umum di sebagian HP Samsung), karakter & elemen game jadi tampak sangat
+  /// kecil karena area dunia yang ditampilkan jauh lebih luas dari yang
+  /// didesain.
+  static const double _designHeight = 720;
+
   @override
   Color backgroundColor() => const Color(0xFF8FD3F4);
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    // Kunci tinggi dunia yang terlihat supaya selalu ~[_designHeight] unit,
+    // berapa pun resolusi logis layar device -- proporsi karakter terhadap
+    // layar & jarak lompat/platform jadi konsisten di semua device.
+    if (size.y > 0) {
+      camera.viewfinder.zoom = size.y / _designHeight;
+    }
+  }
 
   @override
   Future<void> onLoad() async {
