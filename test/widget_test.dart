@@ -18,7 +18,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Game Anak Sholeh'), findsOneWidget);
-    expect(find.text('Mulai Bermain'), findsOneWidget);
+    expect(find.text('GAME ANAK SHOLEH'), findsOneWidget);
+    expect(find.text('MULAI BERMAIN'), findsOneWidget);
   });
 }
